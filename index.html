@@ -34,7 +34,7 @@
   </table>
 
   <p>
-    <label>Extra monthly payment: $ <input id="extraInput" type="number" value="50" min="0" step="5"></label>
+    <label>Extra monthly payment: $ <input id="extraInput" type="number" value="500" min="0" step="5"></label>
     <button id="runBtn">Run Avalanche</button>
   </p>
   <p class="note">Assumes monthly compounding at the effective annual rate and that the extra payment is added on top of each loan's minimum payment.</p>
@@ -217,6 +217,7 @@
 
     document.getElementById('runBtn').addEventListener('click', displayResults);
     renderLoans();
+    displayResults();
   </script>
 </body>
 </html>
