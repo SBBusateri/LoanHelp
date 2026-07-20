@@ -21,13 +21,13 @@
 </head>
 <body>
   <h1>LoanHelp – Avalanche Plan</h1>
-  <p>Mock loans based on the first DIRECT SUB loan. Enter an extra monthly payment to see payoff timelines and long-run costs.</p>
+  <p>Enter an extra monthly payment to see payoff timelines and long-run costs using the avalanche method.</p>
 
   <h2>Loans</h2>
   <table id="loanTable">
     <thead>
       <tr>
-        <th>Group</th><th>Type</th><th>Rate</th><th>Principal</th><th>Accrued Interest</th><th>Outstanding</th><th>Min Payment</th>
+        <th>Group</th><th>Rate</th><th>Principal</th><th>Accrued Interest</th><th>Outstanding</th><th>Min Payment</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -45,9 +45,14 @@
   <script>
     const EPS = 0.01;
     const loans = [
-      { group: 'AA', type: 'DIRECT SUB', rate: 0.0353, principal: 3500.00, accrued: 135.94, minPayment: 12.48 },
-      { group: 'AB', type: 'DIRECT SUB', rate: 0.0453, principal: 5000.00, accrued: 210.00, minPayment: 18.00 },
-      { group: 'AC', type: 'DIRECT SUB', rate: 0.0353, principal: 2000.00, accrued: 75.00, minPayment: 7.50 }
+      { group: 'AA', rate: 0.0353, principal: 3500.00, accrued: 135.94, minPayment: 12.48 },
+      { group: 'AB', rate: 0.0353, principal: 2006.69, accrued: 253.28, minPayment: 7.63 },
+      { group: 'AC', rate: 0.0175, principal: 6513.21, accrued: 417.96, minPayment: 18.57 },
+      { group: 'AD', rate: 0.0273, principal: 7520.67, accrued: 674.50, minPayment: 24.97 },
+      { group: 'AE', rate: 0.0399, principal: 7527.66, accrued: 919.24, minPayment: 30.15 },
+      { group: 'AF', rate: 0.0605, principal: 13737.22, accrued: 1808.74, minPayment: 77.84 },
+      { group: 'AG', rate: 0.0605, principal: 6869.61, accrued: 874.12, minPayment: 38.93 },
+      { group: 'PARENT LOAN', rate: 0.0708, principal: 14342.82, accrued: 149.10, minPayment: 50.00 }
     ];
 
     function fmtMoney(n) { return '$' + n.toFixed(2); }
@@ -57,7 +62,6 @@
       tbody.innerHTML = loans.map(l => `
         <tr>
           <td>${l.group}</td>
-          <td>${l.type}</td>
           <td>${(l.rate * 100).toFixed(2)}%</td>
           <td>${fmtMoney(l.principal)}</td>
           <td>${fmtMoney(l.accrued)}</td>
@@ -167,7 +171,6 @@
 
     document.getElementById('runBtn').addEventListener('click', displayResults);
     renderLoans();
-    displayResults();
   </script>
 </body>
 </html>
