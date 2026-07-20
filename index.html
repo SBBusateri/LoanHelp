@@ -55,7 +55,7 @@
       { group: 'PARENT LOAN', rate: 0.0708, principal: 14342.82, accrued: 149.10, minPayment: 50.00 }
     ];
 
-    function fmtMoney(n) { return '$' + n.toFixed(2); }
+    function fmtMoney(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
     function renderLoans() {
       const tbody = document.querySelector('#loanTable tbody');
