@@ -5,25 +5,215 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LoanHelp Avalanche</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; max-width: 960px; }
-    h1, h2 { margin-top: 24px; }
-    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+    * { box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      margin: 0; 
+      padding: 40px 20px; 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      background: linear-gradient(135deg, #ffb3b3 0%, #ff9999 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { 
+      margin: 0 0 10px 0; 
+      color: #1a1a2e; 
+      font-size: 32px;
+      font-weight: 700;
+    }
+    h2 { 
+      margin: 30px 0 15px 0; 
+      color: #1a1a2e; 
+      font-size: 24px;
+      font-weight: 600;
+    }
+    p { 
+      color: #4a4a6a; 
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    table { 
+      border-collapse: collapse; 
+      width: 100%; 
+      margin: 20px 0; 
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    th, td { 
+      border: none; 
+      padding: 16px 12px; 
+      text-align: right; 
+    }
     th:first-child, td:first-child { text-align: left; }
-    th { background: #f7f7f7; }
-    input { font-size: 16px; padding: 4px 6px; width: 120px; }
-    button { font-size: 16px; padding: 6px 14px; margin-left: 8px; }
-    .summary { background: #f0f8ff; padding: 14px; border-radius: 6px; }
-    .summary p { margin: 4px 0; }
-    .note { color: #666; font-size: 14px; margin-top: 8px; }
-    .warning { color: #b46b00; }
+    th { 
+      background: linear-gradient(135deg, #ffb3b3 0%, #ff9999 100%);
+      color: white;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+    tr:nth-child(even) { background: #f8f9fa; }
+    tr:hover { background: #e9ecef; }
+    tr.final-payment {
+      background: #d4edda !important;
+      font-weight: 600;
+    }
+    tr.final-payment td {
+      color: #155724;
+      text-align: center;
+    }
+    .schedule-table th, .schedule-table td {
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+    .year-header {
+      background: #e9ecef;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+    }
+    .year-header:hover {
+      background: #dee2e6;
+    }
+    .year-header::before {
+      content: '▼ ';
+      color: #ff9999;
+    }
+    .year-header.collapsed::before {
+      content: '▶ ';
+    }
+    .year-group {
+      display: table-row-group;
+    }
+    .year-group.hidden tr:not(.always-visible) {
+      display: none;
+    }
+    tr.always-visible {
+      display: table-row !important;
+    }
+    input { 
+      font-size: 16px; 
+      padding: 12px 16px; 
+      width: 150px; 
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #ff9999;
+    }
+    button { 
+      font-size: 16px; 
+      padding: 12px 24px; 
+      margin-left: 12px; 
+      background: linear-gradient(135deg, #ffb3b3 0%, #ff9999 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .collapse-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .collapse-buttons button {
+      font-size: 14px;
+      padding: 8px 16px;
+      margin: 0;
+    }
+    .summary { 
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 24px; 
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .summary p { 
+      margin: 8px 0; 
+      color: #1a1a2e;
+      font-size: 16px;
+    }
+    .summary strong {
+      color: #ff9999;
+    }
+    .note { 
+      color: #6c757d; 
+      font-size: 14px; 
+      margin-top: 16px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #ff9999;
+    }
+    .warning { 
+      color: #dc3545; 
+      background: #f8d7da;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    label {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .results-column {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .results-column h3 {
+      margin: 0 0 15px 0;
+      color: #ff9999;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .results-column p {
+      margin: 10px 0;
+      color: #1a1a2e;
+      font-size: 15px;
+    }
+    .results-column strong {
+      color: #ff9999;
+    }
   </style>
 </head>
 <body>
-  <h1>LoanHelp – Avalanche Plan</h1>
-  <p>Enter an extra monthly payment to see payoff timelines and long-run costs using the avalanche method.</p>
+  <div class="container">
+    <h1>Loan breakdown and payment plan</h1>
+    <p>The avalanche method pays off loans with the highest interest rates first, saving you the most money in the long run by minimizing total interest paid.</p>
 
-  <h2>Loans</h2>
+    <h2>Loans</h2>
   <table id="loanTable">
     <thead>
       <tr>
@@ -33,11 +223,12 @@
     <tbody></tbody>
   </table>
 
-  <p>
-    <label>Extra monthly payment: $ <input id="extraInput" type="number" value="500" min="0" step="5"></label>
-    <button id="runBtn">Run Avalanche</button>
-  </p>
-  <p class="note">Assumes monthly compounding at the effective annual rate and that the extra payment is added on top of each loan's minimum payment.</p>
+  <div class="input-group">
+    <label for="extraInput">Extra monthly payment: $</label>
+    <input id="extraInput" type="number" value="500" min="0" step="5">
+    <button id="runBtn">Run Extra Payment</button>
+  </div>
+  <p class="note">Calculations assume monthly compounding. Extra payments are added to each loan's minimum payment.</p>
 
   <h2>Results</h2>
   <div id="results"></div>
@@ -83,6 +274,8 @@
       let month = 1;
       const MAX_MONTHS = 600;
       let warning = '';
+      let paymentSchedule = [];
+      let currentExtraTarget = null; // Track current extra payment target to stick with it
 
       while (month <= MAX_MONTHS && state.some(s => s.balance > EPS)) {
         // Accrue monthly interest on each active loan
@@ -95,7 +288,30 @@
         active.forEach(s => budget += s.minPayment);
 
         // Avalanche: pay minimums first, then pour all leftover to the highest-rate active loan
+        // If current target is still active and has the highest rate, stick with it
         let order = [...active].sort((a, b) => b.rate - a.rate || b.balance - a.balance);
+        
+        // Check if current target is still valid (active and has highest rate)
+        let targetStillValid = false;
+        if (currentExtraTarget) {
+          const targetLoan = active.find(s => s.group === currentExtraTarget);
+          if (targetLoan) {
+            const maxRate = Math.max(...active.map(s => s.rate));
+            if (targetLoan.rate === maxRate) {
+              targetStillValid = true;
+            }
+          }
+        }
+
+        // If target is no longer valid, reset it
+        if (!targetStillValid) {
+          currentExtraTarget = null;
+        }
+
+        // Track which loan gets extra payment this month
+        let extraPaymentLoan = null;
+        let extraPaymentAmount = 0;
+        let minimumPaymentLoans = [];
 
         // Minimum payment pass
         order.forEach(s => {
@@ -104,19 +320,58 @@
           s.balance -= pay;
           s.totalPaid += pay;
           budget -= pay;
+          minimumPaymentLoans.push(s.group);
         });
 
-        // Extra payment pass
-        order.forEach(s => {
-          if (budget <= 0 || s.balance <= EPS) return;
-          let pay = Math.min(s.balance, budget);
-          s.balance -= pay;
-          s.totalPaid += pay;
-          budget -= pay;
+        // Extra payment pass - stick with current target if valid
+        if (currentExtraTarget) {
+          const targetLoan = active.find(s => s.group === currentExtraTarget);
+          if (targetLoan && targetLoan.balance > EPS) {
+            let pay = Math.min(targetLoan.balance, budget);
+            targetLoan.balance -= pay;
+            targetLoan.totalPaid += pay;
+            if (pay > 0) {
+              extraPaymentLoan = targetLoan.group;
+              extraPaymentAmount = pay;
+            }
+            budget -= pay;
+          } else {
+            // Target paid off, reset for next iteration
+            currentExtraTarget = null;
+          }
+        }
+
+        // If no current target or it was paid off, use the highest rate loan
+        if (!extraPaymentLoan && budget > 0) {
+          order.forEach(s => {
+            if (budget <= 0 || s.balance <= EPS) return;
+            let pay = Math.min(s.balance, budget);
+            s.balance -= pay;
+            s.totalPaid += pay;
+            if (pay > 0) {
+              extraPaymentLoan = s.group;
+              extraPaymentAmount = pay;
+              currentExtraTarget = s.group; // Set as new target
+            }
+            budget -= pay;
+          });
+        }
+
+        paymentSchedule.push({
+          month: month,
+          extraPaymentLoan: extraPaymentLoan,
+          extraPaymentAmount: extraPaymentAmount,
+          minimumPaymentLoans: minimumPaymentLoans,
+          extraPaymentLoanBalance: extraPaymentLoan ? state.find(s => s.group === extraPaymentLoan)?.balance : 0
         });
 
         state.forEach(s => {
-          if (s.paidOffMonth === null && s.balance <= EPS) s.paidOffMonth = month;
+          if (s.paidOffMonth === null && s.balance <= EPS) {
+            s.paidOffMonth = month;
+            if (s.group === currentExtraTarget) {
+              currentExtraTarget = null; // Reset target when paid off
+            }
+          }
         });
 
         month++;
@@ -126,7 +381,7 @@
         warning = 'At least one loan did not pay off within 50 years with this payment plan.';
       }
 
-      return { state, totalMonths: month - 1, warning };
+      return { state, totalMonths: month - 1, warning, paymentSchedule };
     }
 
     function runMinimumOnly() {
@@ -167,7 +422,7 @@
 
     function displayResults() {
       const extra = parseFloat(document.getElementById('extraInput').value) || 0;
-      const { state, totalMonths, warning } = runAvalanche(extra);
+      const { state, totalMonths, warning, paymentSchedule } = runAvalanche(extra);
       const { state: minState, totalMonths: minMonths } = runMinimumOnly();
 
       const sortedState = [...state].sort((a, b) => b.rate - a.rate);
@@ -194,16 +449,118 @@
       const moneySaved = totalPaidMin - totalPaidAll;
       const monthsSaved = minMonths - totalMonths;
 
+      // Calculate payoff date (starting from next month)
+      const today = new Date();
+      const payoffDate = new Date(today.getFullYear(), today.getMonth() + totalMonths + 1, 1);
+      const payoffDateStr = payoffDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      // Calculate individual loan payoff dates (avalanche method)
+      const loanPayoffDates = state.map(s => {
+        if (s.paidOffMonth !== null) {
+          const loanDate = new Date(today.getFullYear(), today.getMonth() + s.paidOffMonth + 1, 1);
+          return {
+            group: s.group,
+            date: loanDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            month: s.paidOffMonth,
+            type: 'avalanche'
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      // Calculate individual loan payoff dates (minimum only)
+      const minLoanPayoffDates = minState.map(s => {
+        if (s.paidOffMonth !== null) {
+          return {
+            group: s.group,
+            month: s.paidOffMonth,
+            type: 'minimum'
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      // Create payment schedule table grouped by year
+      const scheduleByYear = {};
+      paymentSchedule.forEach(s => {
+        const scheduleDate = new Date(today.getFullYear(), today.getMonth() + s.month, 1);
+        const year = scheduleDate.getFullYear();
+        if (!scheduleByYear[year]) {
+          scheduleByYear[year] = [];
+        }
+        scheduleByYear[year].push(s);
+      });
+
+      let scheduleHtml = '';
+      Object.keys(scheduleByYear).sort().forEach(year => {
+        const yearSchedule = scheduleByYear[year];
+        const yearId = `year-${year}`;
+        
+        scheduleHtml += `
+          <tr class="year-header collapsed" onclick="toggleYear('${yearId}')">
+            <td colspan="3">${year}</td>
+          </tr>
+          <tbody class="year-group hidden" id="${yearId}">
+        `;
+        
+        yearSchedule.forEach(s => {
+          const scheduleDate = new Date(today.getFullYear(), today.getMonth() + s.month, 1);
+          const month = scheduleDate.toLocaleDateString('en-US', { month: 'short' });
+          const loanPaidOff = loanPayoffDates.find(l => l.month === s.month);
+          
+          let minPaymentList = s.minimumPaymentLoans.join(', ');
+          let totalPayment = s.minimumPaymentLoans.reduce((sum, group) => {
+            const loan = loans.find(l => l.group === group);
+            return sum + (loan ? loan.minPayment : 0);
+          }, 0) + s.extraPaymentAmount;
+          
+          let balanceLeft = s.extraPaymentLoan ? fmtMoney(s.extraPaymentLoanBalance) : '-';
+          
+          // Always show the regular payment row
+          scheduleHtml += `
+            <tr>
+              <td>${month}</td>
+              <td>${s.extraPaymentLoan || '-'}</td>
+              <td>${balanceLeft}</td>
+              <td>${minPaymentList || '-'}</td>
+              <td>${fmtMoney(totalPayment)}</td>
+            </tr>
+          `;
+          
+          // Add separate green row for loan completion
+          if (loanPaidOff) {
+            scheduleHtml += `
+              <tr class="final-payment always-visible">
+                <td colspan="5">${loanPaidOff.group} - Final Payment (${month})</td>
+              </tr>
+            `;
+          }
+        });
+        
+        scheduleHtml += '</tbody>';
+      });
+
       document.getElementById('results').innerHTML = `
-        <div class="summary">
-          <p><strong>Total monthly payment:</strong> ${fmtMoney(totalMin + extra)}</p>
-          <p><strong>Months until all loans are paid off:</strong> ${totalMonths}</p>
-          <p><strong>Total interest paid across all loans:</strong> ${fmtMoney(totalInterestAll)}</p>
-          <p><strong>Total amount paid across all loans:</strong> ${fmtMoney(totalPaidAll)}</p>
-          <p><strong>Money saved vs minimum payments:</strong> ${fmtMoney(moneySaved)}</p>
-          <p><strong>Months saved vs minimum payments:</strong> ${monthsSaved}</p>
-          ${warning ? `<p class="warning">${warning}</p>` : ''}
+        <div class="results-grid">
+          <div class="results-column">
+            <h3>Payment Info</h3>
+            <p><strong>Total monthly payment:</strong> ${fmtMoney(totalMin + extra)}</p>
+            <p><strong>Months until paid off:</strong> ${totalMonths}</p>
+            <p><strong>Date paid off:</strong> ${payoffDateStr}</p>
+          </div>
+          <div class="results-column">
+            <h3>Total Over Time</h3>
+            <p><strong>Total amount paid:</strong> ${fmtMoney(totalPaidAll)}</p>
+            <p><strong>Total interest paid:</strong> ${fmtMoney(totalInterestAll)}</p>
+          </div>
+          <div class="results-column">
+            <h3>Savings vs Minimum</h3>
+            <p><strong>Total minimum paid:</strong> ${fmtMoney(totalPaidMin)}</p>
+            <p><strong>Money saved:</strong> ${fmtMoney(moneySaved)}</p>
+            <p><strong>Months saved:</strong> ${monthsSaved}</p>
+          </div>
         </div>
+        ${warning ? `<p class="warning">${warning}</p>` : ''}
         <table>
           <thead>
             <tr>
@@ -212,12 +569,58 @@
           </thead>
           <tbody>${rows}</tbody>
         </table>
+        
+        <h2>Payment Schedule</h2>
+        <div class="collapse-buttons">
+          <button onclick="expandAllYears()">Expand All</button>
+          <button onclick="collapseAllYears()">Collapse All</button>
+        </div>
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th>Month</th><th>Extra Payment To</th><th>Balance Left</th><th>Minimum Payment</th><th>Total / Final Payment</th>
+            </tr>
+          </thead>
+          ${scheduleHtml}
+        </table>
       `;
+    }
+
+    function toggleYear(yearId) {
+      const yearGroup = document.getElementById(yearId);
+      const header = yearGroup.previousElementSibling;
+      
+      if (yearGroup.classList.contains('hidden')) {
+        yearGroup.classList.remove('hidden');
+        header.classList.remove('collapsed');
+      } else {
+        yearGroup.classList.add('hidden');
+        header.classList.add('collapsed');
+      }
+    }
+
+    function expandAllYears() {
+      document.querySelectorAll('.year-group').forEach(group => {
+        group.classList.remove('hidden');
+      });
+      document.querySelectorAll('.year-header').forEach(header => {
+        header.classList.remove('collapsed');
+      });
+    }
+
+    function collapseAllYears() {
+      document.querySelectorAll('.year-group').forEach(group => {
+        group.classList.add('hidden');
+      });
+      document.querySelectorAll('.year-header').forEach(header => {
+        header.classList.add('collapsed');
+      });
     }
 
     document.getElementById('runBtn').addEventListener('click', displayResults);
     renderLoans();
     displayResults();
   </script>
+  </div>
 </body>
 </html>
