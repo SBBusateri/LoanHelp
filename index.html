@@ -59,7 +59,8 @@
 
     function renderLoans() {
       const tbody = document.querySelector('#loanTable tbody');
-      tbody.innerHTML = loans.map(l => `
+      const sortedLoans = [...loans].sort((a, b) => b.rate - a.rate);
+      tbody.innerHTML = sortedLoans.map(l => `
         <tr>
           <td>${l.group}</td>
           <td>${(l.rate * 100).toFixed(2)}%</td>
@@ -128,11 +129,49 @@
       return { state, totalMonths: month - 1, warning };
     }
 
+    function runMinimumOnly() {
+      let state = loans.map(l => ({
+        ...l,
+        balance: l.principal + l.accrued,
+        totalPaid: 0,
+        paidOffMonth: null
+      }));
+
+      let month = 1;
+      const MAX_MONTHS = 600;
+
+      while (month <= MAX_MONTHS && state.some(s => s.balance > EPS)) {
+        // Accrue monthly interest on each active loan
+        state.forEach(s => {
+          if (s.balance > EPS) s.balance += s.balance * (s.rate / 12);
+        });
+
+        // Pay only minimums
+        state.forEach(s => {
+          if (s.balance > EPS) {
+            let pay = Math.min(s.balance, s.minPayment);
+            s.balance -= pay;
+            s.totalPaid += pay;
+          }
+        });
+
+        state.forEach(s => {
+          if (s.paidOffMonth === null && s.balance <= EPS) s.paidOffMonth = month;
+        });
+
+        month++;
+      }
+
+      return { state, totalMonths: month - 1 };
+    }
+
     function displayResults() {
       const extra = parseFloat(document.getElementById('extraInput').value) || 0;
       const { state, totalMonths, warning } = runAvalanche(extra);
+      const { state: minState, totalMonths: minMonths } = runMinimumOnly();
 
-      const rows = state.map(s => {
+      const sortedState = [...state].sort((a, b) => b.rate - a.rate);
+      const rows = sortedState.map(s => {
         const months = s.paidOffMonth !== null ? s.paidOffMonth : '>600';
         const totalInterest = s.totalPaid - (s.principal + s.accrued);
         return `
@@ -149,6 +188,11 @@
       const totalMin = loans.reduce((sum, l) => sum + l.minPayment, 0);
       const totalInterestAll = state.reduce((sum, s) => sum + (s.totalPaid - (s.principal + s.accrued)), 0);
       const totalPaidAll = state.reduce((sum, s) => sum + s.totalPaid, 0);
+      
+      const totalInterestMin = minState.reduce((sum, s) => sum + (s.totalPaid - (s.principal + s.accrued)), 0);
+      const totalPaidMin = minState.reduce((sum, s) => sum + s.totalPaid, 0);
+      const moneySaved = totalPaidMin - totalPaidAll;
+      const monthsSaved = minMonths - totalMonths;
 
       document.getElementById('results').innerHTML = `
         <div class="summary">
@@ -156,6 +200,8 @@
           <p><strong>Months until all loans are paid off:</strong> ${totalMonths}</p>
           <p><strong>Total interest paid across all loans:</strong> ${fmtMoney(totalInterestAll)}</p>
           <p><strong>Total amount paid across all loans:</strong> ${fmtMoney(totalPaidAll)}</p>
+          <p><strong>Money saved vs minimum payments:</strong> ${fmtMoney(moneySaved)}</p>
+          <p><strong>Months saved vs minimum payments:</strong> ${monthsSaved}</p>
           ${warning ? `<p class="warning">${warning}</p>` : ''}
         </div>
         <table>
