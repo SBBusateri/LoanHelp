@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoanHelp Avalanche</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; max-width: 960px; }
+    h1, h2 { margin-top: 24px; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    th { background: #f7f7f7; }
+    input { font-size: 16px; padding: 4px 6px; width: 120px; }
+    button { font-size: 16px; padding: 6px 14px; margin-left: 8px; }
+    .summary { background: #f0f8ff; padding: 14px; border-radius: 6px; }
+    .summary p { margin: 4px 0; }
+    .note { color: #666; font-size: 14px; margin-top: 8px; }
+    .warning { color: #b46b00; }
+  </style>
+</head>
+<body>
+  <h1>LoanHelp – Avalanche Plan</h1>
+  <p>Mock loans based on the first DIRECT SUB loan. Enter an extra monthly payment to see payoff timelines and long-run costs.</p>
+
+  <h2>Loans</h2>
+  <table id="loanTable">
+    <thead>
+      <tr>
+        <th>Group</th><th>Type</th><th>Rate</th><th>Principal</th><th>Accrued Interest</th><th>Outstanding</th><th>Min Payment</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <p>
+    <label>Extra monthly payment: $ <input id="extraInput" type="number" value="50" min="0" step="5"></label>
+    <button id="runBtn">Run Avalanche</button>
+  </p>
+  <p class="note">Assumes monthly compounding at the effective annual rate and that the extra payment is added on top of each loan's minimum payment.</p>
+
+  <h2>Results</h2>
+  <div id="results"></div>
+
+  <script>
+    const EPS = 0.01;
+    const loans = [
+      { group: 'AA', type: 'DIRECT SUB', rate: 0.0353, principal: 3500.00, accrued: 135.94, minPayment: 12.48 },
+      { group: 'AB', type: 'DIRECT SUB', rate: 0.0453, principal: 5000.00, accrued: 210.00, minPayment: 18.00 },
+      { group: 'AC', type: 'DIRECT SUB', rate: 0.0353, principal: 2000.00, accrued: 75.00, minPayment: 7.50 }
+    ];
+
+    function fmtMoney(n) { return '$' + n.toFixed(2); }
+
+    function renderLoans() {
+      const tbody = document.querySelector('#loanTable tbody');
+      tbody.innerHTML = loans.map(l => `
+        <tr>
+          <td>${l.group}</td>
+          <td>${l.type}</td>
+          <td>${(l.rate * 100).toFixed(2)}%</td>
+          <td>${fmtMoney(l.principal)}</td>
+          <td>${fmtMoney(l.accrued)}</td>
+          <td>${fmtMoney(l.principal + l.accrued)}</td>
+          <td>${fmtMoney(l.minPayment)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function runAvalanche(extra) {
+      let state = loans.map(l => ({
+        ...l,
+        balance: l.principal + l.accrued,
+        totalPaid: 0,
+        paidOffMonth: null
+      }));
+
+      let month = 1;
+      const MAX_MONTHS = 600;
+      let warning = '';
+
+      while (month <= MAX_MONTHS && state.some(s => s.balance > EPS)) {
+        // Accrue monthly interest on each active loan
+        state.forEach(s => {
+          if (s.balance > EPS) s.balance += s.balance * (s.rate / 12);
+        });
+
+        let active = state.filter(s => s.balance > EPS);
+        let budget = extra;
+        active.forEach(s => budget += s.minPayment);
+
+        // Avalanche: pay minimums first, then pour all leftover to the highest-rate active loan
+        let order = [...active].sort((a, b) => b.rate - a.rate || b.balance - a.balance);
+
+        // Minimum payment pass
+        order.forEach(s => {
+          if (budget <= 0 || s.balance <= EPS) return;
+          let pay = Math.min(s.balance, s.minPayment);
+          s.balance -= pay;
+          s.totalPaid += pay;
+          budget -= pay;
+        });
+
+        // Extra payment pass
+        order.forEach(s => {
+          if (budget <= 0 || s.balance <= EPS) return;
+          let pay = Math.min(s.balance, budget);
+          s.balance -= pay;
+          s.totalPaid += pay;
+          budget -= pay;
+        });
+
+        state.forEach(s => {
+          if (s.paidOffMonth === null && s.balance <= EPS) s.paidOffMonth = month;
+        });
+
+        month++;
+      }
+
+      if (state.some(s => s.balance > EPS)) {
+        warning = 'At least one loan did not pay off within 50 years with this payment plan.';
+      }
+
+      return { state, totalMonths: month - 1, warning };
+    }
+
+    function displayResults() {
+      const extra = parseFloat(document.getElementById('extraInput').value) || 0;
+      const { state, totalMonths, warning } = runAvalanche(extra);
+
+      const rows = state.map(s => {
+        const months = s.paidOffMonth !== null ? s.paidOffMonth : '>600';
+        const totalInterest = s.totalPaid - (s.principal + s.accrued);
+        return `
+          <tr>
+            <td>${s.group}</td>
+            <td>${(s.rate * 100).toFixed(2)}%</td>
+            <td>${months}</td>
+            <td>${fmtMoney(totalInterest)}</td>
+            <td>${fmtMoney(s.totalPaid)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const totalMin = loans.reduce((sum, l) => sum + l.minPayment, 0);
+      const totalInterestAll = state.reduce((sum, s) => sum + (s.totalPaid - (s.principal + s.accrued)), 0);
+      const totalPaidAll = state.reduce((sum, s) => sum + s.totalPaid, 0);
+
+      document.getElementById('results').innerHTML = `
+        <div class="summary">
+          <p><strong>Total monthly payment:</strong> ${fmtMoney(totalMin + extra)}</p>
+          <p><strong>Months until all loans are paid off:</strong> ${totalMonths}</p>
+          <p><strong>Total interest paid across all loans:</strong> ${fmtMoney(totalInterestAll)}</p>
+          <p><strong>Total amount paid across all loans:</strong> ${fmtMoney(totalPaidAll)}</p>
+          ${warning ? `<p class="warning">${warning}</p>` : ''}
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Group</th><th>Rate</th><th>Payoff Months</th><th>Total Interest</th><th>Total Paid</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    document.getElementById('runBtn').addEventListener('click', displayResults);
+    renderLoans();
+    displayResults();
+  </script>
+</body>
+</html>
