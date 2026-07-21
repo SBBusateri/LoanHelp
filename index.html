@@ -10,9 +10,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
       margin: 0; 
       padding: 40px 20px; 
-      max-width: 1200px; 
-      margin: 0 auto; 
-      background: linear-gradient(135deg, #ffb3b3 0%, #ff9999 100%);
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
       min-height: 100vh;
     }
     .container {
@@ -20,6 +18,15 @@
       border-radius: 16px;
       padding: 40px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 1200px;
+      margin: 0 auto;
+      overflow-x: auto;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 20px 0;
+      max-width: 100%;
     }
     h1 { 
       margin: 0 0 10px 0; 
@@ -45,6 +52,7 @@
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 100%;
     }
     th, td { 
       border: none; 
@@ -53,7 +61,7 @@
     }
     th:first-child, td:first-child { text-align: left; }
     th { 
-      background: linear-gradient(135deg, #ffb3b3 0%, #ff9999 100%);
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
       color: white;
       font-weight: 600;
       text-transform: uppercase;
@@ -85,7 +93,7 @@
     }
     .year-header::before {
       content: '▼ ';
-      color: #ff9999;
+      color: #ff6b6b;
     }
     .year-header.collapsed::before {
       content: '▶ ';
@@ -109,13 +117,13 @@
     }
     input:focus {
       outline: none;
-      border-color: #ff9999;
+      border-color: #ff6b6b;
     }
     button { 
       font-size: 16px; 
       padding: 12px 24px; 
       margin-left: 12px; 
-      background: linear-gradient(135deg, #ffb3b3 0%, #ff9999 100%);
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
       color: white;
       border: none;
       border-radius: 8px;
@@ -152,7 +160,7 @@
       font-size: 16px;
     }
     .summary strong {
-      color: #ff9999;
+      color: #ff6b6b;
     }
     .note { 
       color: #6c757d; 
@@ -161,7 +169,7 @@
       padding: 12px;
       background: #f8f9fa;
       border-radius: 8px;
-      border-left: 4px solid #ff9999;
+      border-left: 4px solid #ff6b6b;
     }
     .warning { 
       color: #dc3545; 
@@ -175,6 +183,7 @@
       align-items: center;
       gap: 12px;
       margin: 20px 0;
+      flex-wrap: wrap;
     }
     label {
       font-weight: 600;
@@ -193,7 +202,7 @@
     }
     .results-column h3 {
       margin: 0 0 15px 0;
-      color: #ff9999;
+      color: #ff6b6b;
       font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -204,7 +213,60 @@
       font-size: 15px;
     }
     .results-column strong {
-      color: #ff9999;
+      color: #ff6b6b;
+    }
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px;
+      }
+      .container {
+        padding: 20px;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      .input-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .input-group label {
+        margin-bottom: 8px;
+      }
+      .input-group input {
+        width: 100%;
+        margin-bottom: 12px;
+      }
+      .input-group button {
+        margin-left: 0;
+        width: 100%;
+      }
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+      table {
+        font-size: 10px;
+      }
+      th, td {
+        padding: 4px 2px;
+      }
+      .schedule-table th, .schedule-table td {
+        padding: 3px 4px;
+        font-size: 9px;
+      }
+      .collapse-buttons {
+        flex-direction: column;
+      }
+      .collapse-buttons button {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      /* Hide less important columns on mobile */
+      .hide-mobile {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -243,7 +305,7 @@
       { group: 'AE', rate: 0.0399, principal: 7527.66, accrued: 919.24, minPayment: 30.15 },
       { group: 'AF', rate: 0.0605, principal: 13737.22, accrued: 1808.74, minPayment: 77.84 },
       { group: 'AG', rate: 0.0605, principal: 6869.61, accrued: 874.12, minPayment: 38.93 },
-      { group: 'PARENT LOAN', rate: 0.0708, principal: 14342.82, accrued: 149.10, minPayment: 50.00 }
+      { group: 'PARENT LOAN', rate: 0.0708, principal: 14342.82, accrued: 149.10, minPayment: 106.02 }
     ];
 
     function fmtMoney(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
