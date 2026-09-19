@@ -22,12 +22,6 @@
       margin: 0 auto;
       overflow-x: auto;
     }
-    .table-wrapper {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      margin: 20px 0;
-      max-width: 100%;
-    }
     h1 { 
       margin: 0 0 10px 0; 
       color: #1a1a2e; 
@@ -148,20 +142,6 @@
       padding: 8px 16px;
       margin: 0;
     }
-    .summary { 
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      padding: 24px; 
-      border-radius: 12px;
-      margin: 20px 0;
-    }
-    .summary p { 
-      margin: 8px 0; 
-      color: #1a1a2e;
-      font-size: 16px;
-    }
-    .summary strong {
-      color: #ffb6c1;
-    }
     .note { 
       color: #6c757d; 
       font-size: 14px; 
@@ -184,6 +164,44 @@
       gap: 12px;
       margin: 20px 0;
       flex-wrap: wrap;
+    }
+    #loanTable input {
+      width: 110px;
+      padding: 6px 8px;
+      font-size: 14px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      text-align: right;
+      background: transparent;
+    }
+    #loanTable input:hover {
+      border-color: #e0e0e0;
+    }
+    #loanTable input:focus {
+      background: #fff;
+      border-color: #ffb6c1;
+    }
+    #loanTable input.loan-group {
+      width: 120px;
+      text-align: left;
+    }
+    .delete-loan {
+      padding: 4px 10px;
+      margin: 0;
+      font-size: 14px;
+      background: #dc3545;
+    }
+    .loan-actions {
+      margin: 10px 0;
+    }
+    .loan-actions button {
+      margin-left: 0;
+      margin-right: 12px;
+      font-size: 14px;
+      padding: 8px 16px;
+    }
+    #saveLoansBtn.dirty {
+      background: linear-gradient(135deg, #ffa94d 0%, #ff6b6b 100%);
     }
     label {
       font-weight: 600;
@@ -263,9 +281,13 @@
         width: 100%;
         margin-bottom: 8px;
       }
-      /* Hide less important columns on mobile */
-      .hide-mobile {
-        display: none;
+      #loanTable input {
+        width: 80px;
+        padding: 4px 6px;
+        font-size: 12px;
+      }
+      #loanTable input.loan-group {
+        width: 90px;
       }
     }
   </style>
@@ -279,25 +301,33 @@
   <table id="loanTable">
     <thead>
       <tr>
-        <th>Group</th><th>Rate</th><th>Principal</th><th>Accrued Interest</th><th>Outstanding</th><th>Min Payment</th>
+        <th>Group</th><th>Rate</th><th>Principal</th><th>Accrued Interest</th><th>Outstanding</th><th>Min Payment</th><th></th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
+  <div class="loan-actions">
+    <button id="saveLoansBtn">Save</button>
+    <button id="addLoanBtn">+ Add Loan</button>
+    <button id="resetLoansBtn">Reset to Defaults</button>
+  </div>
+  <p class="note">Click a value to edit it, then click Save — saved loans load automatically next visit (stored in this browser, no account or database needed).</p>
 
   <div class="input-group">
-    <label for="extraInput">Extra monthly payment: $</label>
-    <input id="extraInput" type="number" value="500" min="0" step="5">
+    <label for="extraInput">Extra monthly payment:</label>
+    <input id="extraInput" type="text" inputmode="decimal" value="$500.00">
     <button id="runBtn">Run Extra Payment</button>
   </div>
-  <p class="note">Calculations assume monthly compounding. Extra payments are added to each loan's minimum payment.</p>
+  <p class="note">Interest accrues daily (rate ÷ 365) and is applied monthly. When a loan is paid off, its minimum payment rolls into the extra payment on the next-highest-rate loan (avalanche method).</p>
 
   <h2>Results</h2>
   <div id="results"></div>
 
   <script>
     const EPS = 0.01;
-    const loans = [
+    const STORAGE_KEY = 'loanhelp.loans';
+    const EXTRA_KEY = 'loanhelp.extra';
+    const defaultLoans = [
       { group: 'AA', rate: 0.0353, principal: 3500.00, accrued: 135.94, minPayment: 12.48 },
       { group: 'AB', rate: 0.0353, principal: 2006.69, accrued: 253.28, minPayment: 7.63 },
       { group: 'AC', rate: 0.0175, principal: 6513.21, accrued: 417.96, minPayment: 18.57 },
@@ -308,21 +338,60 @@
       { group: 'PARENT LOAN', rate: 0.0608, principal: 14342.82, accrued: 149.10, minPayment: 106.02 }
     ];
 
+    function loadLoans() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (Array.isArray(saved)) {
+          return saved.filter(l => l && typeof l === 'object').map(l => ({
+            group: String(l.group ?? ''),
+            rate: +l.rate || 0,
+            principal: +l.principal || 0,
+            accrued: +l.accrued || 0,
+            minPayment: +l.minPayment || 0
+          }));
+        }
+      } catch (e) {}
+      return defaultLoans.map(l => ({ ...l }));
+    }
+
+    let loans = loadLoans();
+
+    function saveLoans() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(loans));
+    }
+
     function fmtMoney(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function parseNum(s) {
+      const n = parseFloat(String(s).replace(/[$,%\s]/g, ''));
+      return isNaN(n) ? 0 : Math.max(0, n);
+    }
+
+    let dirty = false;
+    function setDirty(v) {
+      dirty = v;
+      document.getElementById('saveLoansBtn').classList.toggle('dirty', v);
+    }
+
+    function escAttr(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
 
     function renderLoans() {
       const tbody = document.querySelector('#loanTable tbody');
       const sortedLoans = [...loans].sort((a, b) => b.rate - a.rate);
-      tbody.innerHTML = sortedLoans.map(l => `
+      tbody.innerHTML = sortedLoans.map(l => {
+        const i = loans.indexOf(l);
+        return `
         <tr>
-          <td>${l.group}</td>
-          <td>${(l.rate * 100).toFixed(2)}%</td>
-          <td>${fmtMoney(l.principal)}</td>
-          <td>${fmtMoney(l.accrued)}</td>
+          <td><input class="loan-group" data-idx="${i}" data-field="group" value="${escAttr(l.group)}"></td>
+          <td><input type="text" inputmode="decimal" data-idx="${i}" data-field="rate" value="${+(l.rate * 100).toFixed(4)}">%</td>
+          <td><input type="text" inputmode="decimal" data-idx="${i}" data-field="principal" value="${fmtMoney(l.principal)}"></td>
+          <td><input type="text" inputmode="decimal" data-idx="${i}" data-field="accrued" value="${fmtMoney(l.accrued)}"></td>
           <td>${fmtMoney(l.principal + l.accrued)}</td>
-          <td>${fmtMoney(l.minPayment)}</td>
-        </tr>
-      `).join('');
+          <td><input type="text" inputmode="decimal" data-idx="${i}" data-field="minPayment" value="${fmtMoney(l.minPayment)}"></td>
+          <td><button class="delete-loan" data-idx="${i}" title="Remove loan">×</button></td>
+        </tr>`;
+      }).join('');
     }
 
     function runAvalanche(extra) {
@@ -338,16 +407,19 @@
       let warning = '';
       let paymentSchedule = [];
       let currentExtraTarget = null; // Track current extra payment target to stick with it
+      const today = new Date();
+      const totalMin = loans.reduce((sum, l) => sum + l.minPayment, 0);
 
       while (month <= MAX_MONTHS && state.some(s => s.balance > EPS)) {
-        // Accrue monthly interest on each active loan
+        // Accrue daily interest for the number of days in this calendar month
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + month + 1, 0).getDate();
         state.forEach(s => {
-          if (s.balance > EPS) s.balance += s.balance * (s.rate / 12);
+          if (s.balance > EPS) s.balance += s.balance * (s.rate * daysInMonth / 365);
         });
 
+        // Budget stays constant: when a loan pays off, its minimum rolls into the extra payment
         let active = state.filter(s => s.balance > EPS);
-        let budget = extra;
-        active.forEach(s => budget += s.minPayment);
+        let budget = extra + totalMin;
 
         // Avalanche: pay minimums first, then pour all leftover to the highest-rate active loan
         // If current target is still active and has the highest rate, stick with it
@@ -403,19 +475,21 @@
           }
         }
 
-        // If no current target or it was paid off, use the highest rate loan
-        if (!extraPaymentLoan && budget > 0) {
+        // Roll any leftover budget down the rate order (e.g. target paid off mid-month)
+        if (budget > 0) {
           order.forEach(s => {
             if (budget <= 0 || s.balance <= EPS) return;
             let pay = Math.min(s.balance, budget);
             s.balance -= pay;
             s.totalPaid += pay;
-            if (pay > 0) {
-              extraPaymentLoan = s.group;
-              extraPaymentAmount = pay;
-              currentExtraTarget = s.group; // Set as new target
-            }
             budget -= pay;
+            if (pay > 0) {
+              if (!extraPaymentLoan) {
+                extraPaymentLoan = s.group;
+                currentExtraTarget = s.group; // Set as new target
+              }
+              extraPaymentAmount += pay;
+            }
           });
         }
 
@@ -456,11 +530,13 @@
 
       let month = 1;
       const MAX_MONTHS = 600;
+      const today = new Date();
 
       while (month <= MAX_MONTHS && state.some(s => s.balance > EPS)) {
-        // Accrue monthly interest on each active loan
+        // Accrue daily interest for the number of days in this calendar month
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + month + 1, 0).getDate();
         state.forEach(s => {
-          if (s.balance > EPS) s.balance += s.balance * (s.rate / 12);
+          if (s.balance > EPS) s.balance += s.balance * (s.rate * daysInMonth / 365);
         });
 
         // Pay only minimums
@@ -483,7 +559,7 @@
     }
 
     function displayResults() {
-      const extra = parseFloat(document.getElementById('extraInput').value) || 0;
+      const extra = parseNum(document.getElementById('extraInput').value);
       const { state, totalMonths, warning, paymentSchedule } = runAvalanche(extra);
       const { state: minState, totalMonths: minMonths } = runMinimumOnly();
 
@@ -513,34 +589,15 @@
 
       // Calculate payoff date (starting from next month)
       const today = new Date();
+      const hitCap = totalMonths >= 600;
       const payoffDate = new Date(today.getFullYear(), today.getMonth() + totalMonths + 1, 1);
-      const payoffDateStr = payoffDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const payoffDateStr = hitCap ? '—' : payoffDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-      // Calculate individual loan payoff dates (avalanche method)
-      const loanPayoffDates = state.map(s => {
-        if (s.paidOffMonth !== null) {
-          const loanDate = new Date(today.getFullYear(), today.getMonth() + s.paidOffMonth + 1, 1);
-          return {
-            group: s.group,
-            date: loanDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-            month: s.paidOffMonth,
-            type: 'avalanche'
-          };
-        }
-        return null;
-      }).filter(Boolean);
-
-      // Calculate individual loan payoff dates (minimum only)
-      const minLoanPayoffDates = minState.map(s => {
-        if (s.paidOffMonth !== null) {
-          return {
-            group: s.group,
-            month: s.paidOffMonth,
-            type: 'minimum'
-          };
-        }
-        return null;
-      }).filter(Boolean);
+      // Calculate individual loan payoff months (avalanche method)
+      const loanPayoffDates = state.filter(s => s.paidOffMonth !== null).map(s => ({
+        group: s.group,
+        month: s.paidOffMonth
+      }));
 
       // Create payment schedule table grouped by year
       const scheduleByYear = {};
@@ -560,7 +617,7 @@
         
         scheduleHtml += `
           <tr class="year-header collapsed" onclick="toggleYear('${yearId}')">
-            <td colspan="3">${year}</td>
+            <td colspan="5">${year}</td>
           </tr>
           <tbody class="year-group hidden" id="${yearId}">
         `;
@@ -568,7 +625,7 @@
         yearSchedule.forEach(s => {
           const scheduleDate = new Date(today.getFullYear(), today.getMonth() + s.month, 1);
           const month = scheduleDate.toLocaleDateString('en-US', { month: 'short' });
-          const loanPaidOff = loanPayoffDates.find(l => l.month === s.month);
+          const loansPaidOff = loanPayoffDates.filter(l => l.month === s.month);
           
           let minPaymentList = s.minimumPaymentLoans.join(', ');
           let totalPayment = s.minimumPaymentLoans.reduce((sum, group) => {
@@ -589,14 +646,14 @@
             </tr>
           `;
           
-          // Add separate green row for loan completion
-          if (loanPaidOff) {
+          // Add a separate green row for each loan completed this month
+          loansPaidOff.forEach(lp => {
             scheduleHtml += `
               <tr class="final-payment always-visible">
-                <td colspan="5">${loanPaidOff.group} - Final Payment (${month})</td>
+                <td colspan="5">${lp.group} - Final Payment (${month})</td>
               </tr>
             `;
-          }
+          });
         });
         
         scheduleHtml += '</tbody>';
@@ -607,7 +664,7 @@
           <div class="results-column">
             <h3>Payment Info</h3>
             <p><strong>Total monthly payment:</strong> ${fmtMoney(totalMin + extra)}</p>
-            <p><strong>Months until paid off:</strong> ${totalMonths}</p>
+            <p><strong>Months until paid off:</strong> ${hitCap ? '>600' : totalMonths}</p>
             <p><strong>Date paid off:</strong> ${payoffDateStr}</p>
           </div>
           <div class="results-column">
@@ -619,7 +676,7 @@
             <h3>Savings vs Minimum</h3>
             <p><strong>Total minimum paid:</strong> ${fmtMoney(totalPaidMin)}</p>
             <p><strong>Money saved:</strong> ${fmtMoney(moneySaved)}</p>
-            <p><strong>Months saved:</strong> ${monthsSaved}</p>
+            <p><strong>Months saved:</strong> ${minMonths >= 600 ? '>' : ''}${monthsSaved}</p>
           </div>
         </div>
         ${warning ? `<p class="warning">${warning}</p>` : ''}
@@ -678,6 +735,91 @@
         header.classList.add('collapsed');
       });
     }
+
+    const loanTbody = document.querySelector('#loanTable tbody');
+
+    loanTbody.addEventListener('focusin', e => {
+      if (e.target.matches('input')) e.target.select();
+    });
+
+    loanTbody.addEventListener('mouseup', e => {
+      const el = e.target;
+      if (el.matches('input') && el.selectionStart === 0 && el.selectionEnd === el.value.length) {
+        e.preventDefault();
+      }
+    });
+
+    loanTbody.addEventListener('change', e => {
+      const el = e.target;
+      const i = +el.dataset.idx;
+      const field = el.dataset.field;
+      if (!loans[i] || !field) return;
+      if (field === 'group') {
+        loans[i].group = el.value;
+      } else if (field === 'rate') {
+        loans[i].rate = parseNum(el.value) / 100;
+      } else {
+        loans[i][field] = parseNum(el.value);
+      }
+      setDirty(true);
+      renderLoans();
+      displayResults();
+    });
+
+    loanTbody.addEventListener('click', e => {
+      const btn = e.target.closest('.delete-loan');
+      if (!btn) return;
+      loans.splice(+btn.dataset.idx, 1);
+      setDirty(true);
+      renderLoans();
+      displayResults();
+    });
+
+    const saveLoansBtn = document.getElementById('saveLoansBtn');
+    saveLoansBtn.addEventListener('click', () => {
+      saveLoans();
+      setDirty(false);
+      saveLoansBtn.textContent = 'Saved';
+      setTimeout(() => { saveLoansBtn.textContent = 'Save'; }, 1500);
+    });
+
+    document.getElementById('addLoanBtn').addEventListener('click', () => {
+      loans.push({ group: 'NEW', rate: 0, principal: 0, accrued: 0, minPayment: 0 });
+      setDirty(true);
+      renderLoans();
+      displayResults();
+    });
+
+    document.getElementById('resetLoansBtn').addEventListener('click', () => {
+      if (!confirm('Reset all loans to the original values?')) return;
+      loans = defaultLoans.map(l => ({ ...l }));
+      saveLoans();
+      setDirty(false);
+      renderLoans();
+      displayResults();
+    });
+
+    window.addEventListener('beforeunload', e => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+
+    const extraInput = document.getElementById('extraInput');
+    const savedExtra = localStorage.getItem(EXTRA_KEY);
+    extraInput.value = fmtMoney(parseNum(savedExtra ?? extraInput.value));
+    extraInput.addEventListener('focus', () => extraInput.select());
+    extraInput.addEventListener('mouseup', e => {
+      if (e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
+        e.preventDefault();
+      }
+    });
+    extraInput.addEventListener('change', () => {
+      const v = parseNum(extraInput.value);
+      extraInput.value = fmtMoney(v);
+      localStorage.setItem(EXTRA_KEY, v);
+      displayResults();
+    });
 
     document.getElementById('runBtn').addEventListener('click', displayResults);
     renderLoans();
